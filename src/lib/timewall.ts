@@ -162,11 +162,16 @@ export function isCountable(evidence: Evidence, cutoffMs: number): boolean {
 }
 
 /**
- * 数据完整度：可见证据中，A 级（可精确校验）占比。
+ * 数据完整度：可见的市场证据中，A 级（可精确校验）占比。
  * 用于给复盘结论打置信度，而不是拍脑袋写「高置信」。
+ *
+ * 系统说明（type='user_note'）不计入分母 —— 它记录的是「这里没有数据」这件事本身，
+ * 不是市场信息，算进去反而会稀释可信度指标。
  */
 export function dataCompleteness(evidences: Evidence[], cutoffMs: number): number {
-  const visible = evidences.filter((e) => judgeVisibility(e, cutoffMs).verdict === 'visible');
+  const visible = evidences.filter(
+    (e) => e.type !== 'user_note' && judgeVisibility(e, cutoffMs).verdict === 'visible',
+  );
   if (visible.length === 0) return 0;
   const aLevel = visible.filter((e) => e.level === 'A').length;
   return Number((aLevel / visible.length).toFixed(4));

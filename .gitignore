@@ -34,3 +34,6 @@ npm-debug.log*
 
 # 本地 Agent 工作记录，不随仓库分发
 .workbuddy/
+
+# 测试运行器使用的项目内临时目录
+.tmp/

@@ -25,12 +25,26 @@ export default async function Home() {
             先拦住事后才知道的信息，再拆开收益里哪部分来自市场、哪部分来自你的判断。
           </p>
         </div>
-        <Link
-          href="/import"
-          className="rounded-md border border-ink-200 px-3.5 py-2 text-[12px] text-ink-700 hover:border-ink-400"
-        >
-          导入交割单
-        </Link>
+        <nav className="flex items-center gap-2">
+          <Link
+            href="/patterns"
+            className="rounded-md border border-ink-200 px-3.5 py-2 text-[12px] text-ink-700 hover:border-ink-400"
+          >
+            一组交易的共同点
+          </Link>
+          <Link
+            href="/plan"
+            className="rounded-md border border-ink-200 px-3.5 py-2 text-[12px] text-ink-700 hover:border-ink-400"
+          >
+            建仓前检查
+          </Link>
+          <Link
+            href="/import"
+            className="rounded-md border border-ink-200 px-3.5 py-2 text-[12px] text-ink-700 hover:border-ink-400"
+          >
+            导入交割单
+          </Link>
+        </nav>
       </header>
 
       <section className="mt-10">

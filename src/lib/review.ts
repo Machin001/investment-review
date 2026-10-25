@@ -207,6 +207,47 @@ export async function buildReview(opts: {
     );
   }
 
+  // 决策日盘中行情缺失说明（P1-3）
+  // 必须在分组前算出来：说明本身要作为一条证据参与分组，出现在时间线的决策时点位置
+  const isIntradayDecision = shanghaiDate(cutoffMs) === entryDate && cutoffMs < dayCloseMs(entryDate);
+  const hasSameDayVisiblePrice = evidences.some(
+    (e) =>
+      e.type === 'price' &&
+      e.symbol === entry.thscode &&
+      e.publishedDate === entryDate &&
+      e.publishedAtMs !== null &&
+      e.publishedAtMs <= cutoffMs,
+  );
+  let decisionDayNote: string | null = null;
+  if (isIntradayDecision && !hasSameDayVisiblePrice) {
+    decisionDayNote =
+      `你在 ${entryDate} 盘中做出决策，而日 K 收盘价要到当日 15:00 才确定，` +
+      `因此当天的收盘价属于事后信息，不能进入「当时的我」。当前数据源只提供日线，无分钟级行情，` +
+      `所以决策时点的盘面上下文为空白 —— 这是数据能力边界，不是数据缺失。`;
+
+    evidences.push({
+      id: `note:decision-day:${entry.id}`,
+      type: 'user_note',
+      level: 'C',
+      title: '决策时点没有盘面数据（系统说明）',
+      summary: decisionDayNote,
+      symbol: entry.thscode,
+      publishedAtMs: cutoffMs,
+      publishedDate: entryDate,
+      timePrecision: 'ms',
+      source: {
+        provider: 'derived',
+        endpoint: 'system:decision-day-note',
+        fetchedAtMs: Date.now(),
+        caliber: '系统生成的说明性条目，不是市场数据，不参与归因权重与完整度计算',
+      },
+    });
+
+    gaps.push(
+      gapOf('决策时点盘中行情', '数据源仅提供日 K，无分钟线', '决策当日的“当时的我”视图没有价格上下文，相关判断无法被验证'),
+    );
+  }
+
   // 冲突检测：两源不一致时双方都保留
   detectConflicts(evidences);
   const conflicts = summarizeConflicts(evidences);
@@ -217,22 +258,6 @@ export async function buildReview(opts: {
   for (const [id, j] of partition.judgements) judgements[id] = j;
 
   const completeness = dataCompleteness(evidences, cutoffMs);
-
-  // 决策日盘中行情缺失说明（P1-3）
-  const hasSameDayPrice = partition.visible.some(
-    (e) => e.type === 'price' && e.publishedDate === entryDate && e.symbol === entry.thscode,
-  );
-  const isIntradayDecision = shanghaiDate(cutoffMs) === entryDate && cutoffMs < dayCloseMs(entryDate);
-  let decisionDayNote: string | null = null;
-  if (isIntradayDecision && !hasSameDayPrice) {
-    decisionDayNote =
-      `你在 ${entryDate} 盘中做出决策，而日 K 收盘价要到当日 15:00 才确定，` +
-      `因此当天的收盘价属于事后信息，不能进入「当时的我」。当前数据源只提供日线，无分钟级行情，` +
-      `所以决策时点的盘面上下文为空白 —— 这是数据能力边界，不是数据缺失。`;
-    gaps.push(
-      gapOf('决策时点盘中行情', '数据源仅提供日 K，无分钟线', '决策当日的“当时的我”视图没有价格上下文，相关判断无法被验证'),
-    );
-  }
 
   // 归因（入口已过护栏）
   let attribution: TimelinePayload['attribution'] = null;
@@ -314,7 +339,7 @@ export async function buildReview(opts: {
  * 沉淀：把偏差与归因转成下次能直接用的东西
  * 三类资产：检查清单项 / 提醒卡 / 错误词典
  */
-function buildLearningAssets(opts: {
+export function buildLearningAssets(opts: {
   sessionId: string;
   biasHits: ReviewSession['biasHits'];
   entry: Trade;
@@ -326,7 +351,9 @@ function buildLearningAssets(opts: {
 
   const push = (kind: LearningAsset['kind'], content: string, trigger: string, code: string) => {
     out.push({
-      id: `asset:${code}:${sessionId}`,
+      // id 必须包含 kind：同一个偏差常常同时产出「清单项」和「提醒卡」，
+      // 只用 code 会导致两者 id 相撞，落库时后一条静默覆盖前一条
+      id: `asset:${kind}:${code}:${sessionId}`,
       kind,
       content,
       trigger,

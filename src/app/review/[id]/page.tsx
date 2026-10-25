@@ -170,14 +170,23 @@ export default async function ReviewPage({
         <section>
           <div className="flex items-baseline justify-between">
             <h2 className="text-[14px] font-medium text-ink-900">当时可见的证据</h2>
-            <span className="text-[11px] text-ink-400">{payload.visible.length} 条 · 已过时点防火墙</span>
+            <span className="text-[11px] text-ink-400">
+              {payload.visible.length} 条已过时点防火墙 · 此处展示其中 {timeline.length} 条关键节点
+            </span>
           </div>
 
           <ol className="mt-3 space-y-1.5">
             {timeline.map((e) => {
               const j = payload.judgements[e.id];
               return (
-                <li key={e.id} className="rounded-card border border-[#E9EDF2] bg-white px-4 py-2.5">
+                <li
+                  key={e.id}
+                  className={`rounded-card px-4 py-2.5 ${
+                    e.type === 'user_note'
+                      ? 'border border-dashed border-ink-300 bg-ink-50/60'
+                      : 'border border-[#E9EDF2] bg-white'
+                  }`}
+                >
                   <div className="flex items-start gap-2.5">
                     <span className={`num w-[86px] shrink-0 pt-0.5 text-[11px] ${VERDICT_STYLE[j?.verdict ?? 'visible']}`}>
                       {e.publishedAtMs ? shanghaiDateTime(e.publishedAtMs).slice(5) : e.publishedDate}
@@ -190,7 +199,17 @@ export default async function ReviewPage({
                       {e.level}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[12.5px] text-ink-900">{e.title}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[12.5px] text-ink-900">{e.title}</span>
+                        {e.conflictWith && e.conflictWith.length > 0 && (
+                          <span
+                            className="shrink-0 rounded border border-up/40 bg-up/5 px-1 text-[10px] leading-[15px] text-up"
+                            title={`与 ${e.conflictWith.join('、')} 不一致，两条均保留`}
+                          >
+                            多源不一致
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-0.5 line-clamp-2 text-[11.5px] leading-relaxed text-ink-500">{e.summary}</div>
                       <details className="mt-1">
                         <summary className="cursor-pointer text-[10.5px] text-ink-400 hover:text-accent">
