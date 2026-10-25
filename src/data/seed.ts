@@ -10,7 +10,7 @@
  *   T3 贵州茅台  对照样本，拿着不动小亏 —— 用来避免「只复盘失败」的取样偏差
  */
 
-import type { Hypothesis, Trade } from '@/lib/types';
+import type { DecisionRecord, Hypothesis, Trade } from '@/lib/types';
 import { parseDateTime } from '@/lib/time';
 
 export const SEED_TRADES: Trade[] = [
@@ -155,3 +155,24 @@ export const SEED_HYPOTHESES: Record<string, Hypothesis> = {
 /** 数据来源说明，会展示在界面上 */
 export const SEED_PROVENANCE =
   '价格、日期、热榜排名来自扶摇金融数据 API（取数于 2026-10-25）；用户画像与仓位为构造数据。';
+
+/**
+ * 一条历史决策记录（构造）
+ *
+ * 用于演示回检链路：2026-09-01 决定加仓兆易创新，写下「跌破 330 就承认判断错」。
+ * 之后股价确实跌破 330（10-22 最低 276.75），证伪条件被触及 ——
+ * 回检页会把这个事实摆出来，并请用户自述当时有没有执行。
+ */
+export const SEED_DECISIONS: DecisionRecord[] = [
+  {
+    id: 'D-SEED-1',
+    thscode: '603986.SH',
+    name: '兆易创新',
+    createdAtMs: parseDateTime('2026-09-01 10:30'),
+    plannedPrice: 372,
+    falsify: '跌破 330 就承认判断错，减仓一半',
+    sectorQuery: '电子->半导体->集成电路',
+    checkedAssetIds: [],
+    check: null,
+  },
+];

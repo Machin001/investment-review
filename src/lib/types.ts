@@ -209,6 +209,49 @@ export interface LearningAsset {
   lastVerifiedAtMs: number | null;
 }
 
+/** 一次建仓决策的记录 —— 由「建仓前检查」产生，供日后回检 */
+export interface DecisionRecord {
+  id: string;
+  thscode: string;
+  name: string;
+  createdAtMs: number;
+  /** 计划买入价，用于回检时算实际偏离 */
+  plannedPrice: number | null;
+  /** 决策当时写下的证伪条件（可含价格阈值，回检时自动判定是否被触及） */
+  falsify: string | null;
+  sectorQuery?: string;
+  /** 当时确认过的清单条目 id */
+  checkedAssetIds: string[];
+  /** 回检结果；null 表示还没回检 */
+  check: DecisionCheck | null;
+}
+
+/** 回检：自动算事实 + 用户自述执行情况 */
+export interface DecisionCheck {
+  checkedAtMs: number;
+  /** 用户自述：清单是否被执行 */
+  verdict: 'followed' | 'partial' | 'ignored';
+  note: string;
+  auto: DecisionFacts;
+}
+
+/** 回检时自动计算的事实，落库便于日后复核 */
+export interface DecisionFacts {
+  /** 决策后经过的交易日数（依赖交易日历） */
+  tradingDays: number | null;
+  /** 决策价 → 最新收盘的涨跌 */
+  returnPct: number | null;
+  /** 期间最大回撤（最低价相对决策价） */
+  maxDrawdownPct: number | null;
+  /** 从证伪条件里解析出的价格阈值 */
+  falsifyThreshold: number | null;
+  /** 阈值是否已被触及；解析不出为 null，不猜 */
+  falsifyTriggered: boolean | null;
+  /** 决策时使用的价格 */
+  basePrice: number | null;
+  asOfDate: string | null;
+}
+
 /** 一次复盘会话 */
 export interface ReviewSession {
   id: string;

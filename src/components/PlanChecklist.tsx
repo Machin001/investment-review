@@ -25,6 +25,8 @@ export default function PlanChecklist() {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [sector, setSector] = useState('');
+  const [plannedPrice, setPlannedPrice] = useState('');
+  const [falsify, setFalsify] = useState('');
   const [matches, setMatches] = useState<Match[] | null>(null);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
@@ -70,7 +72,11 @@ export default function PlanChecklist() {
             thscode: code.trim() || name.trim(),
             name: name.trim() || code.trim(),
             createdAtMs: Date.now(),
+            plannedPrice: plannedPrice ? Number(plannedPrice) : null,
+            falsify: falsify.trim() || null,
+            sectorQuery: sector.trim() || undefined,
             checkedAssetIds: matches.map((m) => m.asset.id),
+            check: null,
           },
         }),
       });
@@ -103,6 +109,27 @@ export default function PlanChecklist() {
         <div>
           <label className="text-[12px] text-ink-900">板块（可选）</label>
           <input value={sector} onChange={(e) => setSector(e.target.value)} className={field} placeholder="半导体" />
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-[12px] text-ink-900">计划买入价（可选）</label>
+          <input
+            value={plannedPrice}
+            onChange={(e) => setPlannedPrice(e.target.value.replace(/[^\d.]/g, ''))}
+            className={field}
+            placeholder="回检时用它当基准，不填则用决策日收盘价"
+          />
+        </div>
+        <div>
+          <label className="text-[12px] text-ink-900">这次的证伪条件（可选，但强烈建议）</label>
+          <input
+            value={falsify}
+            onChange={(e) => setFalsify(e.target.value)}
+            className={field}
+            placeholder="例：跌破 330 就承认判断错了"
+          />
         </div>
       </div>
 

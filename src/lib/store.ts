@@ -9,8 +9,8 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import type { Hypothesis, LearningAsset, Trade } from './types';
-import { SEED_HYPOTHESES, SEED_TRADES } from '@/data/seed';
+import type { DecisionCheck, DecisionRecord, Hypothesis, LearningAsset, Trade } from './types';
+import { SEED_DECISIONS, SEED_HYPOTHESES, SEED_TRADES } from '@/data/seed';
 
 const DATA_DIR = path.join(process.cwd(), 'data', 'runtime');
 const STORE_FILE = path.join(DATA_DIR, 'store.json');
@@ -20,8 +20,8 @@ interface StoreShape {
   trades: Trade[];
   hypotheses: Record<string, Hypothesis>;
   assets: LearningAsset[];
-  /** 用户新建的决策（提醒卡回灌用） */
-  decisions: { id: string; thscode: string; name: string; createdAtMs: number; checkedAssetIds: string[] }[];
+  /** 用户新建的决策（提醒卡回灌 + 事后回检） */
+  decisions: DecisionRecord[];
 }
 
 const EMPTY: StoreShape = { version: 1, trades: [], hypotheses: {}, assets: [], decisions: [] };
@@ -37,7 +37,7 @@ async function readStore(): Promise<StoreShape> {
       trades: [...SEED_TRADES],
       hypotheses: { ...SEED_HYPOTHESES },
       assets: [],
-      decisions: [],
+      decisions: [...SEED_DECISIONS],
     };
     await writeStore(seeded);
     return seeded;
@@ -116,18 +116,25 @@ export async function saveAssets(assets: LearningAsset[]): Promise<void> {
   await writeStore(s);
 }
 
-export async function recordDecision(d: {
-  id: string;
-  thscode: string;
-  name: string;
-  createdAtMs: number;
-  checkedAssetIds: string[];
-}): Promise<void> {
+export async function recordDecision(d: DecisionRecord): Promise<void> {
   const s = await readStore();
   s.decisions = [...s.decisions.filter((x) => x.id !== d.id), d];
   await writeStore(s);
 }
 
-export async function listDecisions() {
+export async function listDecisions(): Promise<DecisionRecord[]> {
   return (await readStore()).decisions;
+}
+
+export async function getDecision(id: string): Promise<DecisionRecord | null> {
+  return (await listDecisions()).find((d) => d.id === id) ?? null;
+}
+
+/** 写入回检结果 */
+export async function saveDecisionCheck(id: string, check: DecisionCheck): Promise<void> {
+  const s = await readStore();
+  const target = s.decisions.find((d) => d.id === id);
+  if (!target) throw new Error(`未找到决策 ${id}`);
+  target.check = check;
+  await writeStore(s);
 }

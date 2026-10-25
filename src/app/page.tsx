@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { listPositions, listAssets } from '@/lib/store';
+import { listPositions, listAssets, listDecisions } from '@/lib/store';
 import { shanghaiDate } from '@/lib/time';
 import { SEED_PROVENANCE } from '@/data/seed';
 
@@ -10,7 +10,8 @@ function pct(n: number): string {
 }
 
 export default async function Home() {
-  const [positions, assets] = await Promise.all([listPositions(), listAssets()]);
+  const [positions, assets, decisions] = await Promise.all([listPositions(), listAssets(), listDecisions()]);
+  const pendingChecks = decisions.filter((d) => d.check === null).length;
 
   return (
     <main className="mx-auto max-w-[1080px] px-8 py-12">
@@ -37,6 +38,16 @@ export default async function Home() {
             className="rounded-md border border-ink-200 px-3.5 py-2 text-[12px] text-ink-700 hover:border-ink-400"
           >
             建仓前检查
+          </Link>
+          <Link
+            href="/decisions"
+            className={`rounded-md border px-3.5 py-2 text-[12px] hover:border-ink-400 ${
+              pendingChecks > 0
+                ? 'border-warnLine/40 bg-warnSoft text-[#7A5310]'
+                : 'border-ink-200 text-ink-700'
+            }`}
+          >
+            决策回检{pendingChecks > 0 ? ` · ${pendingChecks} 待回检` : ''}
           </Link>
           <Link
             href="/import"
