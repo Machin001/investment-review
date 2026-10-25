@@ -31,3 +31,6 @@ Thumbs.db
 .vscode/
 *.log
 npm-debug.log*
+
+# 本地 Agent 工作记录，不随仓库分发
+.workbuddy/
