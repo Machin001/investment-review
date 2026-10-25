@@ -17,10 +17,17 @@ export interface BiasContext {
   bars: DailyBar[];
   /** 建仓日热榜排名，未上榜为 null */
   hotRank: number | null;
+  /** 建仓日龙虎榜净买入（元），未上榜为 null */
+  dragonTigerNetValue: number | null;
   totalReturnPct: number;
   holdingTradingDays: number | null;
   /** 用于把偏差挂到可点开的证据上 */
-  evidence: { entryBarId: string | null; hotRankId: string | null; exitBarId: string | null };
+  evidence: {
+    entryBarId: string | null;
+    hotRankId: string | null;
+    dragonTigerId: string | null;
+    exitBarId: string | null;
+  };
 }
 
 /**
@@ -87,6 +94,20 @@ export function computeBiasHits(ctx: BiasContext): BiasHit[] {
       evidenceText: `建仓当日该股在热榜排名第 ${ctx.hotRank} 位`,
       evidenceIds: ctx.evidence.hotRankId ? [ctx.evidence.hotRankId] : [],
       rule: '建仓日 hot_stock_list_history 排名 ≤ 10',
+      severity: 2,
+      sampleSize: 1,
+    });
+  }
+
+  // R7 资金方向相背：建仓日龙虎榜净卖出超过 5000 万
+  if (ctx.dragonTigerNetValue !== null && ctx.dragonTigerNetValue < -5_000_000) {
+    const yi = ctx.dragonTigerNetValue / 1e8;
+    hits.push({
+      code: 'capital_flow_against',
+      label: '在主力资金净流出当天买入',
+      evidenceText: `建仓当日龙虎榜净卖出 ${Math.abs(yi).toFixed(2)} 亿，你的方向与当天披露的资金方向相反`,
+      evidenceIds: ctx.evidence.dragonTigerId ? [ctx.evidence.dragonTigerId] : [],
+      rule: '建仓日 dragon-tiger-list 的 net_value < −5000 万元',
       severity: 2,
       sampleSize: 1,
     });

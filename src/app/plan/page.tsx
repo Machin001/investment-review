@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { listAssets, listDecisions } from '@/lib/store';
 import PlanChecklist from '@/components/PlanChecklist';
+import GenerateAssetsButton from '@/components/GenerateAssetsButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,10 @@ export default async function PlanPage() {
           历史决策记录 <span className="num text-ink-900">{decisions.length}</span> 条
         </span>
         {assets.length === 0 && (
-          <span className="text-warnLine">还没有资产，先去完成一次复盘并点「存入我的清单」</span>
+          <span className="flex items-center gap-2 text-warnLine">
+            还没有资产。可以从你已有的复盘里直接生成：
+            <GenerateAssetsButton />
+          </span>
         )}
       </div>
 

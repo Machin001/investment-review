@@ -29,6 +29,7 @@ export type EvidenceType =
   | 'sector' // 行业 / 板块涨跌
   | 'limit_up_stat' // 涨停统计（市场情绪）
   | 'hot_rank' // 同花顺热榜排名
+  | 'dragon_tiger' // 龙虎榜（资金流向）
   | 'anomaly' // 个股异动解读
   | 'notice' // 公告
   | 'news' // 资讯
@@ -250,6 +251,22 @@ export interface DecisionFacts {
   /** 决策时使用的价格 */
   basePrice: number | null;
   asOfDate: string | null;
+}
+
+/** 模式面板的历史快照 —— 用来观察「偏差有没有改善」 */
+export interface PatternSnapshot {
+  id: string;
+  atMs: number;
+  /** 纳入统计的已平仓交易数 */
+  totalPositions: number;
+  winRate: number | null;
+  avgReturnPct: number | null;
+  /** 盈/亏持有交易日比，越小越接近「赚了就跑、亏了死扛」 */
+  dispositionRatio: number | null;
+  /** 各偏差命中笔数 */
+  biasCounts: Record<string, number>;
+  /** 是否为构造的演示数据（真实快照为 false） */
+  isDemo: boolean;
 }
 
 /** 一次复盘会话 */

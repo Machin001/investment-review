@@ -111,6 +111,29 @@ export const fuyao: MarketDataProvider = {
     return (data.item ?? []).slice(0, topN);
   },
 
+  async getDragonTiger(date, thscode) {
+    const { data } = await call<{
+      trade_date: string;
+      stock_items: {
+        thscode: string;
+        name: string;
+        net_value: number;
+        net_rate: number;
+        hot_rank?: number | null;
+        concept_list?: { name: string }[];
+      }[];
+    }>('/api/a-share/special-data/dragon-tiger-list', { date });
+
+    const hit = (data.stock_items ?? []).find((x) => x.thscode === thscode);
+    if (!hit) return null;
+    return {
+      netValue: hit.net_value,
+      netRate: hit.net_rate,
+      hotRank: hit.hot_rank ?? null,
+      concepts: (hit.concept_list ?? []).map((c) => c.name),
+    };
+  },
+
   async getLimitUpStats(date) {
     const { data } = await call<{
       limit_up_stock_count: number;

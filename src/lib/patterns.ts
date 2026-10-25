@@ -8,6 +8,7 @@
 import { listPositions } from './store';
 import { buildReview } from './review';
 import type { Gap } from './evidence';
+import type { PatternSnapshot } from './types';
 
 export interface PatternBiasRow {
   code: string;
@@ -166,4 +167,23 @@ export function dispositionVerdict(r: PatternReport): { verdict: 'hit' | 'clear'
     verdict: 'clear',
     text: `盈利单平均持有 ${r.avgWinHoldDays.toFixed(1)} 个交易日，亏损单 ${r.avgLossHoldDays.toFixed(1)} 个，比值 ${ratio.toFixed(2)}，未表现出该偏差`,
   };
+}
+
+/** 把当前统计结果转成可保存的快照 */
+export function toSnapshot(r: PatternReport): PatternSnapshot {
+  return {
+    id: `snap-${r.generatedAtMs}`,
+    atMs: r.generatedAtMs,
+    totalPositions: r.closedPositions,
+    winRate: r.winRate,
+    avgReturnPct: r.avgReturnPct,
+    dispositionRatio: r.dispositionRatio,
+    biasCounts: Object.fromEntries(r.biasRows.map((b) => [b.code, b.count])),
+    isDemo: false,
+  };
+}
+
+/** 偏差总命中数（各偏差命中笔数之和） */
+export function totalBiasCount(s: PatternSnapshot): number {
+  return Object.values(s.biasCounts).reduce((a, b) => a + b, 0);
 }

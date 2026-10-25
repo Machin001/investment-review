@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildLearningAssets } from '@/lib/review';
 import { classifyHypothesisAnchor } from '@/lib/evidence';
+import { totalBiasCount, toSnapshot } from '@/lib/patterns';
 import type { BiasHit, Trade } from '@/lib/types';
 import { parseDateTime } from '@/lib/time';
 
@@ -99,5 +100,41 @@ describe('假设可信锚边界', () => {
         crossChecked: false,
       }),
     ).toBe('recall_only');
+  });
+});
+
+describe('模式快照', () => {
+  it('偏差总命中数是各偏差命中笔数之和', () => {
+    const snap = {
+      id: 's1',
+      atMs: Date.now(),
+      totalPositions: 3,
+      winRate: 0.33,
+      avgReturnPct: -7.1,
+      dispositionRatio: 0.05,
+      biasCounts: { a: 2, b: 1, c: 0 },
+      isDemo: false,
+    };
+    expect(totalBiasCount(snap)).toBe(3);
+  });
+
+  it('快照会带上样本量，避免只看命中数被样本带偏', () => {
+    const snap = toSnapshot({
+      totalPositions: 3,
+      closedPositions: 3,
+      winRate: 0.33,
+      avgReturnPct: -7.1,
+      avgWinHoldDays: 2,
+      avgLossHoldDays: 41.5,
+      dispositionRatio: 0.05,
+      biasRows: [{ code: 'x', label: '测试', count: 2, total: 3, symbols: [], rules: [] }],
+      perPosition: [],
+      gaps: [],
+      generatedAtMs: 1_700_000_000_000,
+    });
+    expect(snap.isDemo).toBe(false);
+    expect(snap.totalPositions).toBe(3);
+    expect(snap.biasCounts).toEqual({ x: 2 });
+    expect(snap.dispositionRatio).toBe(0.05);
   });
 });

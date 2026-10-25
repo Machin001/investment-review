@@ -56,6 +56,11 @@ export interface MarketDataProvider {
   getIndexBars(thscode: string, startMs: number, endMs: number): Promise<DailyBar[]>;
   /** 该交易日热榜前 N */
   getHotList(date: string, topN: number): Promise<{ thscode: string; name: string; rank: number }[]>;
+  /** 该交易日的龙虎榜记录；未上榜返回 null */
+  getDragonTiger(
+    date: string,
+    thscode: string,
+  ): Promise<{ netValue: number; netRate: number; hotRank: number | null; concepts: string[] } | null>;
   /** 该交易日涨停统计（市场情绪） */
   getLimitUpStats(date: string): Promise<{ limitUpCount: number; sealRate: number; openCount: number }>;
   /**

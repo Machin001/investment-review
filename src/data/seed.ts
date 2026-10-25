@@ -10,7 +10,7 @@
  *   T3 贵州茅台  对照样本，拿着不动小亏 —— 用来避免「只复盘失败」的取样偏差
  */
 
-import type { DecisionRecord, Hypothesis, Trade } from '@/lib/types';
+import type { DecisionRecord, Hypothesis, PatternSnapshot, Trade } from '@/lib/types';
 import { parseDateTime } from '@/lib/time';
 
 export const SEED_TRADES: Trade[] = [
@@ -174,5 +174,45 @@ export const SEED_DECISIONS: DecisionRecord[] = [
     sectorQuery: '电子->半导体->集成电路',
     checkedAssetIds: [],
     check: null,
+  },
+];
+
+/**
+ * 模式快照（前三条为**构造的演示数据**，不是真实统计）
+ *
+ * 用途：让「偏差是否随时间改善」有可视化的对照组。
+ * 真实快照由用户在 /patterns 点「保存本次快照」生成，isDemo=false。
+ * 界面会把演示数据明确标注出来，不与真实数据混排。
+ */
+export const SEED_SNAPSHOTS: PatternSnapshot[] = [
+  {
+    id: 'snap-demo-1',
+    atMs: parseDateTime('2026-07-15 20:00'),
+    totalPositions: 1,
+    winRate: 0,
+    avgReturnPct: -18.4,
+    dispositionRatio: 0.12,
+    biasCounts: { no_falsify_condition: 1, chase_high: 1, hot_rank_driven: 1, concentration: 1 },
+    isDemo: true,
+  },
+  {
+    id: 'snap-demo-2',
+    atMs: parseDateTime('2026-08-20 20:00'),
+    totalPositions: 2,
+    winRate: 0.5,
+    avgReturnPct: -6.2,
+    dispositionRatio: 0.21,
+    biasCounts: { no_falsify_condition: 1, chase_high: 2, hot_rank_driven: 1, concentration: 1 },
+    isDemo: true,
+  },
+  {
+    id: 'snap-demo-3',
+    atMs: parseDateTime('2026-09-25 20:00'),
+    totalPositions: 3,
+    winRate: 0.33,
+    avgReturnPct: -7.1,
+    dispositionRatio: 0.05,
+    biasCounts: { no_falsify_condition: 1, chase_high: 2, hot_rank_driven: 2, concentration: 1, early_exit_no_rule: 1 },
+    isDemo: true,
   },
 ];

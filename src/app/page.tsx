@@ -12,11 +12,28 @@ function pct(n: number): string {
 export default async function Home() {
   const [positions, assets, decisions] = await Promise.all([listPositions(), listAssets(), listDecisions()]);
   const pendingChecks = decisions.filter((d) => d.check === null).length;
+  const missingHypothesis = positions.filter((p) => p.hypothesis === null);
+  const todos: { label: string; detail: string; href: string }[] = [
+    ...(pendingChecks > 0
+      ? [
+          {
+            label: `${pendingChecks} 条决策待回检`,
+            detail: '建仓时确认的清单，事后有没有被执行？',
+            href: '/decisions',
+          },
+        ]
+      : []),
+    ...missingHypothesis.map((p) => ({
+      label: `${p.entry.name} 还没写假设台账`,
+      detail: '没有证伪条件，这笔交易事后无法判断错在哪一步',
+      href: `/hypothesis/${p.entry.id}`,
+    })),
+  ];
 
   return (
     <main className="mx-auto max-w-[1080px] px-8 py-12">
-      <header className="flex items-end justify-between">
-        <div>
+      <header>
+        <div className="max-w-[700px]">
           <p className="text-[11px] tracking-[0.2em] text-ink-400">投资决策复盘</p>
           <h1 className="mt-2 text-[24px] font-medium leading-snug text-ink-900">
             你的交易记录在这里，当时的想法不在
@@ -26,7 +43,7 @@ export default async function Home() {
             先拦住事后才知道的信息，再拆开收益里哪部分来自市场、哪部分来自你的判断。
           </p>
         </div>
-        <nav className="flex items-center gap-2">
+        <nav className="mt-5 flex flex-wrap items-center gap-2">
           <Link
             href="/patterns"
             className="rounded-md border border-ink-200 px-3.5 py-2 text-[12px] text-ink-700 hover:border-ink-400"
@@ -58,7 +75,34 @@ export default async function Home() {
         </nav>
       </header>
 
-      <section className="mt-10">
+      <section className="mt-8">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[14px] font-medium text-ink-900">今日待办</h2>
+          <span className="text-[11px] text-ink-400">{todos.length === 0 ? '无' : `${todos.length} 项`}</span>
+        </div>
+        {todos.length === 0 ? (
+          <p className="mt-2 rounded-card border border-[#E3E8EE] bg-white px-4 py-3 text-[12px] text-ink-400">
+            今天没有待办。台账齐全，也没有到期未回检的决策 —— 空着手比乱操作好。
+          </p>
+        ) : (
+          <ul className="mt-2 divide-y divide-[#EEF1F5] overflow-hidden rounded-card border border-[#E3E8EE] bg-white">
+            {todos.map((t) => (
+              <li key={t.href}>
+                <Link href={t.href} className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAFBFC]">
+                  <span className="mt-[7px] h-[6px] w-[6px] shrink-0 self-start rounded-full bg-warnLine" />
+                  <div className="min-w-0">
+                    <div className="text-[12.5px] text-ink-900">{t.label}</div>
+                    <div className="text-[11px] text-ink-400">{t.detail}</div>
+                  </div>
+                  <span className="ml-auto shrink-0 text-[11px] text-accent">去处理 →</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-8">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[14px] font-medium text-ink-900">待复盘持仓</h2>
           <span className="text-[11px] text-ink-400">{positions.length} 笔</span>

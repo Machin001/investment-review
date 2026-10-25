@@ -1,5 +1,8 @@
 import Link from 'next/link';
-import { buildPatterns, dispositionVerdict } from '@/lib/patterns';
+import { buildPatterns, dispositionVerdict, totalBiasCount } from '@/lib/patterns';
+import { listSnapshots } from '@/lib/store';
+import { shanghaiDate } from '@/lib/time';
+import SaveSnapshotButton from '@/components/SaveSnapshotButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,8 +11,9 @@ function pct(n: number | null): string {
 }
 
 export default async function PatternsPage() {
-  const r = await buildPatterns();
+  const [r, snapshots] = await Promise.all([buildPatterns(), listSnapshots()]);
   const dv = dispositionVerdict(r);
+  const maxBias = Math.max(1, ...snapshots.map(totalBiasCount));
 
   return (
     <main className="mx-auto max-w-[1080px] px-8 py-12">
@@ -66,6 +70,73 @@ export default async function PatternsPage() {
             判定条件：(盈利单平均持有交易日 / 亏损单平均持有交易日) &lt; 0.5，且两边样本均不为空
           </span>
         </div>
+      </section>
+
+      <section className="mt-6">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[14px] font-medium text-ink-900">偏差趋势</h2>
+          <SaveSnapshotButton />
+        </div>
+        <p className="mt-1 text-[11px] text-ink-400">
+          快照是对「当时」的固定记录。样本会随交易增加而变化，只看命中笔数会被样本量带偏，
+          所以同时列出已平仓笔数、处置效应比与胜率。
+        </p>
+
+        <div className="mt-3 overflow-hidden rounded-card border border-[#E3E8EE] bg-white">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="border-b border-[#EEF1F5] text-left text-[11px] text-ink-400">
+                <th className="px-4 py-2 font-normal">快照日期</th>
+                <th className="px-4 py-2 font-normal">已平仓</th>
+                <th className="px-4 py-2 font-normal">偏差总命中</th>
+                <th className="px-4 py-2 font-normal">处置效应比</th>
+                <th className="px-4 py-2 text-right font-normal">胜率</th>
+              </tr>
+            </thead>
+            <tbody>
+              {snapshots.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-4 text-[11px] text-ink-400">
+                    还没有快照。点右上角「保存本次快照」，以后就能看到偏差有没有变化。
+                  </td>
+                </tr>
+              )}
+              {snapshots.map((sn) => (
+                <tr key={sn.id} className="border-b border-[#F4F6F9] last:border-0">
+                  <td className="num px-4 py-2.5 text-ink-700">
+                    {shanghaiDate(sn.atMs)}
+                    {sn.isDemo && (
+                      <span className="ml-1.5 rounded border border-ink-300 bg-ink-100 px-1 text-[9.5px] text-ink-500">
+                        演示
+                      </span>
+                    )}
+                  </td>
+                  <td className="num px-4 py-2.5 text-ink-500">{sn.totalPositions}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="h-[5px] w-[110px] rounded bg-ink-100">
+                        <div
+                          className="h-[5px] rounded bg-ink-400"
+                          style={{ width: `${(totalBiasCount(sn) / maxBias) * 100}%` }}
+                        />
+                      </div>
+                      <span className="num text-[11px] text-ink-600">{totalBiasCount(sn)}</span>
+                    </div>
+                  </td>
+                  <td className="num px-4 py-2.5 text-ink-500">
+                    {sn.dispositionRatio === null ? '—' : sn.dispositionRatio.toFixed(2)}
+                  </td>
+                  <td className="num px-4 py-2.5 text-right text-ink-500">
+                    {sn.winRate === null ? '—' : `${(sn.winRate * 100).toFixed(0)}%`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-400">
+          标「演示」的是构造数据，用于展示趋势形态；真实快照由你点按钮生成，两者不混排统计。
+        </p>
       </section>
 
       <section className="mt-6">

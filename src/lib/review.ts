@@ -151,8 +151,7 @@ export async function buildReview(opts: {
 
   // 5. 建仓日市场情绪
   try {
-    const stats = await fuyao.getLimitUpStats(entryDate);
-    evidences.push({
+    const stats = await fuyao.getLimitUpStats(entryDate);    evidences.push({
       id: `limitup:${entryDate}`,
       type: 'limit_up_stat',
       level: 'A',
@@ -172,6 +171,44 @@ export async function buildReview(opts: {
     });
   } catch (err) {
     gaps.push(asGap('市场情绪（涨停统计）', err));
+  }
+
+  // 5b. 建仓日龙虎榜 —— 当天资金是净流入还是净流出，属于当时就能看到的信息
+  let dragonTigerNet: number | null = null;
+  try {
+    const dt = await fuyao.getDragonTiger(entryDate, entry.thscode);
+    if (dt) {
+      dragonTigerNet = dt.netValue;
+      const yi = dt.netValue / 1e8;
+      evidences.push({
+        id: `dragon:${entry.thscode}:${entryDate}`,
+        type: 'dragon_tiger',
+        level: 'A',
+        title: `上榜龙虎榜：净${yi >= 0 ? '买入' : '卖出'} ${Math.abs(yi).toFixed(2)} 亿`,
+        summary:
+          `净占比 ${(dt.netRate * 100).toFixed(2)}%` +
+          (dt.concepts.length ? `，涉及概念 ${dt.concepts.slice(0, 4).join(' / ')}` : '') +
+          (dt.hotRank ? `，当日热榜第 ${dt.hotRank}` : ''),
+        symbol: entry.thscode,
+        publishedAtMs: dayCloseMs(entryDate),
+        publishedDate: entryDate,
+        timePrecision: 'ms',
+        source: {
+          provider: 'fuyao',
+          endpoint: 'GET /api/a-share/special-data/dragon-tiger-list',
+          fetchedAtMs: Date.now(),
+          caliber: '龙虎榜净买入 = 买入额 − 卖出额，口径以交易所披露为准；净占比为净买入占当日成交额比例',
+        },
+        metric: { key: 'stock.dragon_tiger_net_value', value: dt.netValue, unit: 'CNY' },
+        raw: dt as unknown as Record<string, unknown>,
+      });
+    } else {
+      gaps.push(
+        gapOf('建仓日龙虎榜', '该标的当日未上榜', '无法判断当天主力资金方向，此项不参与判断'),
+      );
+    }
+  } catch (err) {
+    gaps.push(asGap('建仓日龙虎榜', err));
   }
 
   // 6. 公告（iFinD 语义检索，日期粒度）
@@ -295,11 +332,13 @@ export async function buildReview(opts: {
     exit,
     bars: stockBars,
     hotRank,
+    dragonTigerNetValue: dragonTigerNet,
     totalReturnPct: attribution?.totalReturnPct ?? 0,
     holdingTradingDays: (attribution?.inputs['持有交易日']?.value as number | null) ?? null,
     evidence: {
       entryBarId: `price:${entry.thscode}:${entryDate}`,
       hotRankId: hotRank !== null ? `hot:${entry.thscode}:${entryDate}` : null,
+      dragonTigerId: dragonTigerNet !== null ? `dragon:${entry.thscode}:${entryDate}` : null,
       exitBarId: exit ? `price:${entry.thscode}:${shanghaiDate(exit.tradedAtMs)}` : null,
     },
   });

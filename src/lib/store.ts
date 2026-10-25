@@ -9,8 +9,8 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import type { DecisionCheck, DecisionRecord, Hypothesis, LearningAsset, Trade } from './types';
-import { SEED_DECISIONS, SEED_HYPOTHESES, SEED_TRADES } from '@/data/seed';
+import type { DecisionCheck, DecisionRecord, Hypothesis, LearningAsset, PatternSnapshot, Trade } from './types';
+import { SEED_DECISIONS, SEED_HYPOTHESES, SEED_SNAPSHOTS, SEED_TRADES } from '@/data/seed';
 
 const DATA_DIR = path.join(process.cwd(), 'data', 'runtime');
 const STORE_FILE = path.join(DATA_DIR, 'store.json');
@@ -22,9 +22,11 @@ interface StoreShape {
   assets: LearningAsset[];
   /** 用户新建的决策（提醒卡回灌 + 事后回检） */
   decisions: DecisionRecord[];
+  /** 模式面板历史快照 */
+  snapshots: PatternSnapshot[];
 }
 
-const EMPTY: StoreShape = { version: 1, trades: [], hypotheses: {}, assets: [], decisions: [] };
+const EMPTY: StoreShape = { version: 1, trades: [], hypotheses: {}, assets: [], decisions: [], snapshots: [] };
 
 async function readStore(): Promise<StoreShape> {
   try {
@@ -38,6 +40,7 @@ async function readStore(): Promise<StoreShape> {
       hypotheses: { ...SEED_HYPOTHESES },
       assets: [],
       decisions: [...SEED_DECISIONS],
+      snapshots: [...SEED_SNAPSHOTS],
     };
     await writeStore(seeded);
     return seeded;
@@ -136,5 +139,21 @@ export async function saveDecisionCheck(id: string, check: DecisionCheck): Promi
   const target = s.decisions.find((d) => d.id === id);
   if (!target) throw new Error(`未找到决策 ${id}`);
   target.check = check;
+  await writeStore(s);
+}
+
+export async function listSnapshots(): Promise<PatternSnapshot[]> {
+  return (await readStore()).snapshots;
+}
+
+/** 追加一条快照；同一天只保留最新一条 */
+export async function saveSnapshot(snap: PatternSnapshot): Promise<void> {
+  const s = await readStore();
+  const sameDay = s.snapshots.filter(
+    (x) => new Date(x.atMs).toISOString().slice(0, 10) === new Date(snap.atMs).toISOString().slice(0, 10),
+  );
+  s.snapshots = [...s.snapshots.filter((x) => !sameDay.some((d) => d.id === x.id)), snap].sort(
+    (a, b) => a.atMs - b.atMs,
+  );
   await writeStore(s);
 }
