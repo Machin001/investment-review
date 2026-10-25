@@ -58,4 +58,9 @@ export interface MarketDataProvider {
   getHotList(date: string, topN: number): Promise<{ thscode: string; name: string; rank: number }[]>;
   /** 该交易日涨停统计（市场情绪） */
   getLimitUpStats(date: string): Promise<{ limitUpCount: number; sealRate: number; openCount: number }>;
+  /**
+   * 交易日历（`yyyy-MM-dd` 升序）。
+   * 交易日间隔计算必须依赖它，不允许用自然日替代。
+   */
+  getTradingCalendar(startMs: number, endMs: number): Promise<string[]>;
 }

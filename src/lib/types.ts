@@ -68,6 +68,11 @@ export interface Evidence {
   source: EvidenceSource;
   /** 原始字段快照，供「点开到原始字段」使用 */
   raw?: Record<string, unknown>;
+  /**
+   * 可比较的数值指标 —— 跨源冲突检测的唯一依据。
+   * 没有 metric 的证据不参与冲突比对（避免用正则从摘要里猜数）。
+   */
+  metric?: { key: string; value: number; unit: string };
   /** 数据冲突标记：同一事实多个来源不一致时，两条都保留并互指 */
   conflictWith?: string[];
 }
@@ -105,7 +110,20 @@ export interface Trade {
   entrySource: 'csv' | 'form' | 'seed';
   /** 组合上下文：这笔占当时总仓位比例（0-1），用于判过度集中 */
   positionWeight?: number;
+  /**
+   * 所属行业（iFinD 行业分类路径），用于行业超额归因。
+   * 必须与标的匹配；缺失时行业归因整项降级，不允许拿别的行业凑数。
+   */
+  sectorQuery?: string;
 }
+
+/**
+ * 假设台账的「可信锚」分级
+ * contemporaneous  录入时刻早于决策时点 + 缓冲（确实是当时写的）
+ * evidence_backed  事后补写，但理由中的触发条件能与当时可见的 A/B 级证据交叉印证
+ * recall_only      纯事后回忆，可能已被结果污染
+ */
+export type HypothesisAnchor = 'contemporaneous' | 'evidence_backed' | 'recall_only';
 
 /** 假设台账 —— 「还原决策过程」的核心载体，不是「为什么买」 */
 export interface Hypothesis {
@@ -115,7 +133,7 @@ export interface Hypothesis {
   trigger: string;
   /** 证伪条件：什么情况下你承认自己错了（必填，这是复盘能否成立的前提） */
   falsify: string;
-  /** 预期周期（交易日） */
+  /** 预期周期（交易日）。注意单位是交易日，对账时必须用交易日历，不能用自然日 */
   horizonTradingDays: number | null;
   /** 预期收益区间，百分比；null 表示用户未给 */
   expectedRangePct: [number, number] | null;
@@ -125,7 +143,11 @@ export interface Hypothesis {
   authoredBy: 'user' | 'ai_assisted' | 'ai_generated';
   /** 建立时刻 —— 用于识别「这条假设是不是事后补写的」 */
   createdAtMs: number;
-  /** 若是事后补写，标记为 true，界面显著提示 */
+  /** 用户自述「我是何时写下这条理由的」，与 createdAtMs 互为印证 */
+  selfReportedWrittenAt: string | null;
+  /** 可信锚：决定这条假设能不能计入归因权重 */
+  anchor: HypothesisAnchor;
+  /** 便捷标记，等价于 anchor === 'recall_only' */
   isBackfilled: boolean;
 }
 
