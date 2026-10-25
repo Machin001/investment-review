@@ -69,13 +69,22 @@ export default async function ReviewPage({
 
   const attrRows = a
     ? [
-        { key: '市场 β', value: a.marketPct, note: '基准指数同期收益 × β' },
-        { key: '行业超额', value: a.sectorPct, note: '板块收益 − 基准收益' },
+        {
+          key: '市场 β',
+          // β 估不出来时不能显示 0.00%，那会被读成「市场没有影响」而不是「算不出来」
+          value: a.inputs['β'].value === null ? null : a.marketPct,
+          note: a.inputs['β'].value === null ? '样本不足，无法估计 β，本项不可计算' : '基准指数同期收益 × β',
+        },
+        {
+          key: '行业超额',
+          value: a.inputs['板块区间收益'].value === null ? null : a.sectorPct,
+          note: a.inputs['板块区间收益'].value === null ? '板块收益缺失，本项不可计算' : '板块收益 − 基准收益',
+        },
         { key: '执行偏差', value: a.executionPct, note: '实际成交 vs 收盘价买入持有' },
-        { key: '残差', value: a.unexplainedPct, note: '未被以上各项解释的部分' },
+        { key: '残差', value: a.unexplainedPct, note: '未被以上各项解释的部分（含未知事件与噪声）' },
       ]
     : [];
-  const maxAbs = Math.max(1, ...attrRows.map((r) => Math.abs(r.value)));
+  const maxAbs = Math.max(1, ...attrRows.map((r) => (r.value === null ? 0 : Math.abs(r.value))));
 
   return (
     <main className="mx-auto max-w-[1180px] px-8 py-10">
@@ -257,13 +266,19 @@ export default async function ReviewPage({
                     <div key={r.key}>
                       <div className="flex items-baseline justify-between text-[11.5px]">
                         <span className="text-ink-700">{r.key}</span>
-                        <span className={`num ${r.value >= 0 ? 'text-up' : 'text-down'}`}>{pct(r.value)}</span>
+                        {r.value === null ? (
+                          <span className="text-[11px] text-ink-400">不可计算</span>
+                        ) : (
+                          <span className={`num ${r.value >= 0 ? 'text-up' : 'text-down'}`}>{pct(r.value)}</span>
+                        )}
                       </div>
                       <div className="mt-1 h-[5px] w-full rounded bg-ink-100">
-                        <div
-                          className={`h-[5px] rounded ${r.value >= 0 ? 'bg-up/70' : 'bg-down/70'}`}
-                          style={{ width: `${Math.min(100, (Math.abs(r.value) / maxAbs) * 100)}%` }}
-                        />
+                        {r.value !== null && (
+                          <div
+                            className={`h-[5px] rounded ${r.value >= 0 ? 'bg-up/70' : 'bg-down/70'}`}
+                            style={{ width: `${Math.min(100, (Math.abs(r.value) / maxAbs) * 100)}%` }}
+                          />
+                        )}
                       </div>
                       <div className="mt-0.5 text-[10.5px] text-ink-400">{r.note}</div>
                     </div>
