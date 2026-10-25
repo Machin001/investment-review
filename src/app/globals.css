@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: #f7f9fb;
+  color: #12161c;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 数字统一等宽，避免表格里跳动 */
+.num {
+  font-family: 'SF Mono', Consolas, 'Roboto Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e3e8ee;
+  border-radius: 10px;
+}
+
+.hairline {
+  border-color: #e3e8ee;
+}
+
+button {
+  font-family: inherit;
+}
