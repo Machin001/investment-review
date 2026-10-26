@@ -18,7 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DELIVERY = ROOT / "_delivery"
 STAGE = DELIVERY / "pkg"
-OUT = DELIVERY / "投资决策复盘_提交包.zip"
+OUT = DELIVERY / "投资决策复盘_答案附件.zip"
 
 EXCLUDE_DIRS = {
     "node_modules", ".next", ".git", "data", ".tmp", ".workbuddy", "_delivery", ".vscode",
@@ -61,12 +61,8 @@ def main() -> None:
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
 
-    # 2. 提交说明放最外层，截图放 screenshots/
-    shutil.copy2(DELIVERY / "00_提交说明.md", STAGE / "00_提交说明.md")
-    shots_dst = STAGE / "screenshots"
-    shots_dst.mkdir(exist_ok=True)
-    for png in sorted((DELIVERY / "shots").glob("*.png")):
-        shutil.copy2(png, shots_dst / png.name)
+    # 2. 提交说明放最外层（仅四项交付物的索引与链接，不放额外材料）
+    shutil.copy2(DELIVERY / "提交说明.md", STAGE / "提交说明.md")
 
     # 3. 打包：正斜杠 + UTF-8 文件名
     if OUT.exists():
@@ -89,12 +85,12 @@ def main() -> None:
     with zipfile.ZipFile(OUT) as zf:
         names = zf.namelist()
     checks = {
-        "提交说明": "00_提交说明.md",
+        "提交说明": "提交说明.md",
         "README": "README.md",
         "AI 记录": "docs/AI使用与验证记录.md",
         "测试说明": "docs/测试说明.md",
         "源码入口": "src/app/page.tsx",
-        "截图": "screenshots/01-首页.png",
+        "测试用例": "tests/store-concurrency.test.ts",
     }
     print("\n关键条目自检:")
     for label, path in checks.items():
@@ -102,6 +98,11 @@ def main() -> None:
 
     bad = [n for n in names if n.startswith("node_modules/") or "/.env.local" in n or n.endswith(".genie")]
     print(f"\n禁忌条目: {len(bad)} 个" if bad else "\n禁忌条目: 0 个")
+
+    docs = sorted(n for n in names if n.startswith("docs/"))
+    print("包内文档:", docs)
+    extra = [n for n in names if n.startswith("screenshots/")]
+    print("截图条目:", len(extra), "(应为 0)")
     print(f"反斜杠条目: {sum(1 for n in names if chr(92) in n)} 个")
 
 
