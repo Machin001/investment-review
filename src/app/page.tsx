@@ -12,6 +12,12 @@ function pct(n: number): string {
 export default async function Home() {
   const [positions, assets, decisions] = await Promise.all([listPositions(), listAssets(), listDecisions()]);
   const pendingChecks = decisions.filter((d) => d.check === null).length;
+  // 给第一次打开的人一个明确起点：优先演示样本 T1，否则取第一笔持仓
+  const featured = positions.find((x) => x.entry.id === 'T1') ?? positions[0] ?? null;
+  const featuredRet =
+    featured?.exit != null
+      ? ((featured.exit.price - featured.entry.price) / featured.entry.price) * 100
+      : null;
   const missingHypothesis = positions.filter((p) => p.hypothesis === null);
   const todos: { label: string; detail: string; href: string }[] = [
     ...(pendingChecks > 0
@@ -42,6 +48,25 @@ export default async function Home() {
             这个工具把成交记录、当时可见的市场信息和你写下的假设对齐到一条时间线，
             先拦住事后才知道的信息，再拆开收益里哪部分来自市场、哪部分来自你的判断。
           </p>
+          {featured && (
+            <Link
+              href={`/review/${featured.entry.id}?viewpoint=entry`}
+              className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-md border border-accent/30 bg-accent-soft px-3 py-2 text-[12px] text-accent-700 transition-colors hover:border-accent"
+            >
+              <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10.5px] tracking-wide">建议起点</span>
+              <span>
+                从「{featured.entry.name}」开始
+                {featuredRet !== null && (
+                  <span className={`num ml-1 ${featuredRet >= 0 ? 'text-up' : 'text-down'}`}>{pct(featuredRet)}</span>
+                )}
+                <span className="text-ink-500">
+                  {' '}
+                  · 看时点防火墙怎么拦住事后信息，以及这笔的收益被拆成了哪几块
+                </span>
+              </span>
+              <span aria-hidden>→</span>
+            </Link>
+          )}
         </div>
         <nav className="mt-5 flex flex-wrap items-center gap-2">
           <Link

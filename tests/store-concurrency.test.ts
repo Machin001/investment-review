@@ -1,8 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-const STORE = path.join(process.cwd(), 'data', 'runtime', 'store.json');
+// 用独立数据目录：否则测试写入会污染演示用的 data/runtime/store.json
+const TEST_DIR = path.join(process.cwd(), '.tmp', 'store-concurrency');
+const STORE = path.join(TEST_DIR, 'store.json');
+
+beforeAll(() => {
+  process.env.APP_DATA_DIR = TEST_DIR;
+});
 
 /**
  * 冷启动并发回归测试（对应评审 R3-P0）

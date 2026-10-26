@@ -19,7 +19,10 @@ import path from 'node:path';
 import type { DecisionCheck, DecisionRecord, Hypothesis, LearningAsset, PatternSnapshot, Trade } from './types';
 import { SEED_DECISIONS, SEED_HYPOTHESES, SEED_SNAPSHOTS, SEED_TRADES } from '@/data/seed';
 
-const DATA_DIR = path.join(process.cwd(), 'data', 'runtime');
+// 允许通过 APP_DATA_DIR 指定数据目录：测试用独立目录，避免污染演示数据
+const DATA_DIR = process.env.APP_DATA_DIR
+  ? path.resolve(process.env.APP_DATA_DIR)
+  : path.join(process.cwd(), 'data', 'runtime');
 const STORE_FILE = path.join(DATA_DIR, 'store.json');
 const TMP_FILE = `${STORE_FILE}.tmp`;
 
