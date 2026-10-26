@@ -5,6 +5,7 @@
 > **先拦住事后才知道的信息**，再拆开收益里哪部分来自市场、哪部分来自你的判断。
 
 **在线演示**：https://investment-review-16064.app.workbuddy.host/?sharecode=FGPRGOWPFU
+**源码仓库**：https://github.com/Machin001/investment-review
 
 > 演示环境未配置数据源凭证，运行在**数据快照模式**：展示的是录制好的真实历史数据，
 > 页面顶部有黄色横幅标注「数据截至 2026-10-26 · 不是实时行情」。本地以 live 模式运行即为实时取数。
