@@ -202,7 +202,11 @@ export async function addTrades(trades: Trade[]): Promise<{ added: number; total
 export async function saveAssets(assets: LearningAsset[]): Promise<void> {
   await mutate((s) => {
     const byId = new Map(s.assets.map((a) => [a.id, a]));
-    for (const a of assets) byId.set(a.id, a);
+    for (const a of assets) {
+      const prev = byId.get(a.id);
+      // 同一规则的重复命中合并成一条：版本号递增，来源与验证时间更新
+      byId.set(a.id, prev ? { ...a, version: prev.version + 1 } : a);
+    }
     s.assets = [...byId.values()];
   });
 }

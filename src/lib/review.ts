@@ -403,9 +403,10 @@ export function buildLearningAssets(opts: {
 
   const push = (kind: LearningAsset['kind'], content: string, trigger: string, code: string) => {
     out.push({
-      // id 必须包含 kind：同一个偏差常常同时产出「清单项」和「提醒卡」，
-      // 只用 code 会导致两者 id 相撞，落库时后一条静默覆盖前一条
-      id: `asset:${kind}:${code}:${sessionId}`,
+      // id 不含 sessionId：清单是「规则级」的，同一条规则在 10 笔交易里命中，
+      // 只应该有一条清单项（version 递增、来源更新），否则清单会被重复条目淹没。
+      // 但必须包含 kind：同一个偏差会同时产出「清单项」和「提醒卡」，否则两者会相撞。
+      id: `asset:${kind}:${code}`,
       kind,
       content,
       trigger,
