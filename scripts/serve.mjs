@@ -1,14 +1,16 @@
 /**
  * 生产启动器
  *
- * 两个部署环境相关的问题都收敛在这里：
+ * 三个部署环境相关的问题都收敛在这里：
  *   1. 沙箱只注入 PORT，并要求监听 0.0.0.0 —— 不能用 `next start -p 3100` 这种写死端口的命令；
- *   2. 沙箱上传的是源码（node_modules 与 .next 会被排除），因此启动前若没有构建产物，
- *      要先跑一次 next build，否则 next start 会直接报 "Could not find a production build"。
+ *   2. 沙箱上传的是源码（node_modules 与 .next 被排除），没有构建产物时 next start 会直接报错；
+ *   3. **重新发布时沙箱会被复用，旧的 .next 还在** —— 只判断「有没有构建产物」会导致
+ *      新代码上传了却仍跑上一版构建（真实踩过：首页改了但线上没变）。
+ *      因此必须比较源码与构建产物的时间戳。
  */
 
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
@@ -22,8 +24,50 @@ function run(args) {
   });
 }
 
-if (!existsSync(path.join(root, '.next', 'BUILD_ID'))) {
-  console.log('[serve] 未发现构建产物，先执行 next build …');
+/** 取目录下最新的修改时间（只看源码，不碰 node_modules） */
+function newestMtime(dir) {
+  let newest = 0;
+  const walk = (d) => {
+    let entries;
+    try {
+      entries = readdirSync(d, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) {
+        if (e.name !== 'node_modules' && e.name !== '.next' && !e.name.startsWith('.')) walk(p);
+        continue;
+      }
+      try {
+        newest = Math.max(newest, statSync(p).mtimeMs);
+      } catch {
+        /* 忽略读不到的文件 */
+      }
+    }
+  };
+  walk(dir);
+  return newest;
+}
+
+const buildIdPath = path.join(root, '.next', 'BUILD_ID');
+let needBuild = !existsSync(buildIdPath);
+
+if (!needBuild) {
+  const builtAt = statSync(buildIdPath).mtimeMs;
+  const srcAt = Math.max(
+    newestMtime(path.join(root, 'src')),
+    newestMtime(path.join(root, 'scripts')),
+    statSync(path.join(root, 'package.json')).mtimeMs,
+  );
+  needBuild = srcAt > builtAt;
+  if (needBuild) console.log('[serve] 源码比构建产物新，重新构建 …');
+}
+
+if (process.env.SKIP_BUILD === '1') {
+  console.log('[serve] SKIP_BUILD=1，跳过构建检查');
+} else if (needBuild) {
   await run(['build']);
 }
 
