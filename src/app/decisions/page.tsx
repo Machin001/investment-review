@@ -134,6 +134,11 @@ export default async function DecisionsPage() {
 
             <div className="mt-2 text-[11px] text-ink-400">
               证伪条件：{d.falsify ?? <span className="text-warnLine">当时没写</span>}
+              {facts.falsifyThreshold !== null && (
+                <span className="ml-1 text-[10.5px]">
+                  （判定口径：区间内最高/最低价触及即算，含盘中触及，与「收盘价跌破」不同）
+                </span>
+              )}
               {d.falsify && facts.falsifyThreshold === null && (
                 <span className="ml-1">（没有可解析的价格阈值，未自动判定）</span>
               )}

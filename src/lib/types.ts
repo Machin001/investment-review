@@ -146,6 +146,12 @@ export interface Hypothesis {
   createdAtMs: number;
   /** 用户自述「我是何时写下这条理由的」，与 createdAtMs 互为印证 */
   selfReportedWrittenAt: string | null;
+  /**
+   * 是否声明「有当时留存的依据」（截图 / 笔记 / 聊天记录）。
+   * 这是自述，产品无法验证；仅用于把 evidence_backed 这一档变得可达，
+   * 并在界面注明「依据为自述」。
+   */
+  artifactDeclared?: boolean;
   /** 可信锚：决定这条假设能不能计入归因权重 */
   anchor: HypothesisAnchor;
   /** 便捷标记，等价于 anchor === 'recall_only' */

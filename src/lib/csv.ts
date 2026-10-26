@@ -5,6 +5,7 @@
  * 解析失败的行走 errors 返回给用户核对，绝不猜测或跳过。
  */
 
+import { createHash } from 'node:crypto';
 import type { Trade } from './types';
 import { parseDateTime } from './time';
 
@@ -164,7 +165,11 @@ export function parseTradeCsv(text: string): ParseResult {
       if (side === 'buy') positionCounter.set(key, n);
 
       trades.push({
-        id: `csv-${rowNo}-${thscode}-${side}`,
+        // 内容寻址：同一条成交重复导入得到同一个 id，不会因为行号变化而重复入库
+        id: `csv-${createHash('sha1')
+          .update(`${thscode}|${side}|${tradedAtMs}|${price}|${Math.abs(qty)}`)
+          .digest('hex')
+          .slice(0, 12)}`,
         thscode,
         name: (cells[idx.name] ?? '').trim() || thscode,
         side,

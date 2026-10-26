@@ -40,6 +40,9 @@ export interface AttributionContext {
   /** 板块区间收益（已封装为证据） */
   sector: { value: number | null; evidenceId: string | null };
   calendar: string[];
+  /** 个股与基准代码，用于生成真实可点开的证据 id */
+  stockCode: string;
+  indexCode: string;
 }
 
 /** 日收益序列 */
@@ -100,6 +103,11 @@ export function computeAttribution(ctx: AttributionContext): { attribution: Attr
 
   const entryDate = shanghaiDate(ctx.entryMs);
   const exitDate = shanghaiDate(ctx.exitMs);
+  // 证据 id 与 providers/fuyao.ts 的 barToEvidence 保持一致：`${kind}:${thscode}:${date}`
+  const entryBarId = `price:${ctx.stockCode}:${entryDate}`;
+  const exitBarId = `price:${ctx.stockCode}:${exitDate}`;
+  const indexEntryBarId = `index:${ctx.indexCode}:${entryDate}`;
+  const indexExitBarId = `index:${ctx.indexCode}:${exitDate}`;
 
   // 1. 实际收益（含双边费用）
   const grossAmount = ctx.exitPrice * ctx.entryQty;
@@ -110,10 +118,17 @@ export function computeAttribution(ctx: AttributionContext): { attribution: Attr
   // 2. 市场贡献
   const idxEntry = closeOnOrAfter(ctx.indexBars, entryDate);
   const idxExit = closeOnOrBefore(ctx.indexBars, exitDate);
+  const betaWindow = ctx.stockBars.filter((b) => shanghaiDate(b.dateMs) < entryDate).slice(-61);
   const beta = estimateBeta(
-    ctx.stockBars.filter((b) => shanghaiDate(b.dateMs) < entryDate).slice(-61),
+    betaWindow,
     ctx.indexBars.filter((b) => shanghaiDate(b.dateMs) < entryDate).slice(-61),
   );
+  const betaAnchorIds = betaWindow.length
+    ? [
+        `price:${ctx.stockCode}:${shanghaiDate(betaWindow[0].dateMs)}`,
+        `price:${ctx.stockCode}:${shanghaiDate(betaWindow[betaWindow.length - 1].dateMs)}`,
+      ]
+    : [];
 
   let marketPct = 0;
   if (idxEntry && idxExit && beta) {
@@ -190,21 +205,24 @@ export function computeAttribution(ctx: AttributionContext): { attribution: Attr
     executionPct: rounded.execution,
     unexplainedPct,
     inputs: {
-      实际收益: { value: rounded.total, sourceEvidenceIds: [] },
-      建仓价: { value: ctx.entryPrice, sourceEvidenceIds: [`price:${ctx.entryPrice}`] },
-      卖出价: { value: ctx.exitPrice, sourceEvidenceIds: [] },
+      实际收益: { value: rounded.total, sourceEvidenceIds: [entryBarId, exitBarId] },
+      建仓价: { value: ctx.entryPrice, sourceEvidenceIds: [entryBarId] },
+      卖出价: { value: ctx.exitPrice, sourceEvidenceIds: [exitBarId] },
       双边费用: { value: round2(ctx.entryFee + ctx.exitFee), sourceEvidenceIds: [] },
       基准指数收益: {
         value: idxEntry && idxExit ? round2((idxExit / idxEntry - 1) * 100) : null,
-        sourceEvidenceIds: ['index:000300.SH'],
+        sourceEvidenceIds: [indexEntryBarId, indexExitBarId],
       },
-      β: { value: beta ? Number(beta.beta.toFixed(3)) : null, sourceEvidenceIds: [] },
-      β样本交易日数: { value: beta ? beta.n : null, sourceEvidenceIds: [] },
+      β: { value: beta ? Number(beta.beta.toFixed(3)) : null, sourceEvidenceIds: betaAnchorIds },
+      β样本交易日数: { value: beta ? beta.n : null, sourceEvidenceIds: betaAnchorIds },
       板块区间收益: {
         value: ctx.sector.value,
         sourceEvidenceIds: ctx.sector.evidenceId ? [ctx.sector.evidenceId] : [],
       },
-      理论买入持有收益: { value: theoreticalPct === null ? null : round2(theoreticalPct), sourceEvidenceIds: [] },
+      理论买入持有收益: {
+        value: theoreticalPct === null ? null : round2(theoreticalPct),
+        sourceEvidenceIds: [entryBarId, exitBarId],
+      },
       持有交易日: { value: holdingTradingDays, sourceEvidenceIds: [] },
     },
     degraded: [

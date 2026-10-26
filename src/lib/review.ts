@@ -21,7 +21,7 @@ import { detectConflicts, summarizeConflicts, gapOf } from './evidence';
 import type { ConflictSummary, Gap } from './evidence';
 import { computeAttribution } from './attribution';
 import { computeBiasHits } from './bias';
-import { dayCloseMs, shanghaiDate } from './time';
+import { dayCloseMs, dayEndMs, shanghaiDate } from './time';
 
 export type Viewpoint = 'entry' | 'exit' | 'today';
 
@@ -212,8 +212,11 @@ export async function buildReview(opts: {
   }
 
   // 6. 公告（iFinD 语义检索，日期粒度）
-  const noticeFrom = shanghaiDate(cutoffMs - 45 * DAY);
-  const noticeTo = shanghaiDate(Math.min(reviewAt, cutoffMs + 45 * DAY));
+  // 窗口要覆盖「建仓 → 卖出 → 复盘」整段，否则 today 视角会漏掉持有期内的公告
+  const spanStart = Math.min(entry.tradedAtMs, cutoffMs);
+  const spanEnd = Math.max(exit?.tradedAtMs ?? cutoffMs, cutoffMs);
+  const noticeFrom = shanghaiDate(spanStart - 45 * DAY);
+  const noticeTo = shanghaiDate(Math.min(reviewAt, spanEnd + 45 * DAY));
   try {
     const notices = await searchNotices(`${entry.name} 公告 经营 业绩`, {
       timeStart: noticeFrom,
@@ -300,10 +303,18 @@ export async function buildReview(opts: {
   let attribution: TimelinePayload['attribution'] = null;
   if (exit && stockBars.length > 0 && indexBars.length > 0) {
     try {
+      // 归因的上界是「卖出时点」：卖完之后的信息与这笔交易无关。
+      // 用复盘时点当 cutoff 会让入口护栏变成空断言（永远通过）。
+      const attrCutoff = dayCloseMs(shanghaiDate(exit.tradedAtMs));
+      const attrEvidences = evidences.filter((e) => {
+        if (e.type === 'user_note') return false;
+        const t = e.publishedAtMs ?? (e.publishedDate ? dayEndMs(e.publishedDate) : Number.POSITIVE_INFINITY);
+        return t <= attrCutoff;
+      });
+
       const { attribution: attr, gaps: attrGaps } = computeAttribution({
-        evidences: partition.visible,
-        // 归因是回溯计算，使用时点为复盘时点；这里传入复盘时点作为上界
-        cutoffMs: reviewAt,
+        evidences: attrEvidences,
+        cutoffMs: attrCutoff,
         entryPrice: entry.price,
         entryMs: entry.tradedAtMs,
         exitPrice: exit.price,
@@ -315,6 +326,8 @@ export async function buildReview(opts: {
         indexBars: indexBars,
         sector,
         calendar,
+        stockCode: entry.thscode,
+        indexCode: BENCH,
       });
       attribution = attr;
       gaps.push(...attrGaps);
@@ -441,11 +454,16 @@ export function buildLearningAssets(opts: {
       case 'early_exit_no_rule':
         push(
           'checklist_item',
-          '卖出也要有规则：写下卖出触发条件（估值、目标价、证伪条件），而不是按浮盈百分比决定',
+          '卖出前写下触发条件：什么情况下卖、卖多少（估值 / 目标价 / 证伪条件任选其一）',
           '任何卖出决策',
           'early_exit_no_rule',
         );
-        push('error_dictionary', '反复出现的模式：只给买入定规则，不给卖出定规则，赚小钱跑、亏大钱扛', '盈利达到 5%~15% 时', 'early_exit_no_rule');
+        push(
+          'error_dictionary',
+          '可复核的记录：台账里有买入理由，没有卖出条件；卖出发生在浮盈 5%~15% 区间，之后价格继续上行',
+          '浮盈达到 5%~15% 时',
+          'early_exit_no_rule',
+        );
         break;
       case 'concentration':
         push('checklist_item', '单票仓位上限先定好，超过 40% 需要写下额外理由', '建仓金额确认前', 'concentration');

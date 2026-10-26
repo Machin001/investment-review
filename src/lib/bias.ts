@@ -123,8 +123,11 @@ export function computeBiasHits(ctx: BiasContext): BiasHit[] {
       if (beyond > 10) {
         hits.push({
           code: 'early_exit_no_rule',
-          label: '卖出缺少规则，只按盈亏感觉决定',
-          evidenceText: `卖出后 10 个交易日内最高收盘 ${peak.toFixed(2)}，较卖出价再涨 ${beyond.toFixed(1)}%`,
+          // 标签只陈述可验证的事实；「只按盈亏感觉决定」是推断，不能写进判定结论
+          label: '卖出后价格继续上行超 10%',
+          evidenceText:
+            `卖出后 10 个交易日内最高收盘 ${peak.toFixed(2)}，较卖出价再涨 ${beyond.toFixed(1)}%。` +
+            `这条只说明你卖在了阶段性低位附近，是否「卖错」取决于你当时的卖出理由 —— 而台账里没有记录它`,
           evidenceIds: [ctx.evidence.exitBarId ?? ''].filter(Boolean),
           rule: '卖出后 10 个交易日内最高收盘 / 卖出价 − 1 > 10%',
           severity: 2,

@@ -20,6 +20,7 @@ export default function HypothesisForm({
   const [counterView, setCounterView] = useState(initial?.counterView ?? '');
   const [horizon, setHorizon] = useState(initial?.horizonTradingDays?.toString() ?? '');
   const [writtenAt, setWrittenAt] = useState(initial?.selfReportedWrittenAt ?? '');
+  const [artifact, setArtifact] = useState(Boolean(initial?.artifactDeclared));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -43,6 +44,7 @@ export default function HypothesisForm({
           horizonTradingDays: horizon ? Number(horizon) : null,
           expectedRangePct: null,
           selfReportedWrittenAt: writtenAt || null,
+          artifactDeclared: artifact,
           authoredBy: 'user',
         }),
       });
@@ -104,6 +106,24 @@ export default function HypothesisForm({
             如果晚于决策 24 小时，会标为“事后回忆”，不计入归因权重
           </p>
         </div>
+      </div>
+
+      <div className="rounded-md border border-[#E3E8EE] bg-[#FAFBFC] px-3 py-2.5">
+        <label className="flex cursor-pointer items-start gap-2">
+          <input
+            type="checkbox"
+            checked={artifact}
+            onChange={(e) => setArtifact(e.target.checked)}
+            className="mt-0.5 h-3.5 w-3.5 accent-[#1F45AC]"
+          />
+          <span className="text-[11.5px] leading-relaxed text-ink-600">
+            我保留了当时的依据（截图 / 笔记 / 聊天记录）
+            <span className="mt-0.5 block text-[10.5px] text-ink-400">
+              勾选后，这条事后补写的台账会记为「有依据的回忆」而不是纯回忆。
+              注意：这是你的自述，产品无法验证。
+            </span>
+          </span>
+        </label>
       </div>
 
       <div>

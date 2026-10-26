@@ -33,7 +33,9 @@ export async function loadAssetMatches(ctx: {
 
   for (const a of assets) {
     const haystack = `${a.trigger} ${a.content}`;
-    if (name && haystack.includes(name)) {
+    // 短名（如「银行」「证券」）做子串匹配会大面积误命中，要求至少 2 个字符且不是通用后缀词
+    const nameUsable = Boolean(name && name.length >= 2);
+    if (nameUsable && haystack.includes(name!)) {
       out.set(a.id, { asset: a, kind: 'same_symbol', reason: `同一标的（${name}）的复盘结论` });
       continue;
     }

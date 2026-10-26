@@ -140,13 +140,18 @@ export default async function PatternsPage() {
       </section>
 
       <section className="mt-6">
-        <h2 className="text-[14px] font-medium text-ink-900">反复出现的偏差</h2>
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[14px] font-medium text-ink-900">反复出现的偏差</h2>
+          <span className="text-[10.5px] text-ink-400">分母为纳入统计的全部交易（含未平仓），分子为命中笔数</span>
+        </div>
         <div className="mt-3 overflow-hidden rounded-card border border-[#E3E8EE] bg-white">
           <table className="w-full text-[12.5px]">
             <thead>
               <tr className="border-b border-[#EEF1F5] text-left text-[11px] text-ink-400">
                 <th className="px-4 py-2.5 font-normal">偏差</th>
-                <th className="px-4 py-2.5 font-normal">命中笔数</th>
+                <th className="px-4 py-2.5 font-normal" title="分子为命中该偏差的笔数，分母为纳入统计的全部交易（含未平仓）">
+                  命中笔数
+                </th>
                 <th className="px-4 py-2.5 font-normal">涉及标的</th>
                 <th className="px-4 py-2.5 font-normal">判定规则</th>
               </tr>

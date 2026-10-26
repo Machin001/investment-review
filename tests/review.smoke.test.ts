@@ -80,6 +80,8 @@ describe.skipIf(!live)('复盘主链路 · 真实数据', () => {
         indexBars: [],
         sector: { value: null, evidenceId: null },
         calendar: [],
+        stockCode: entry.thscode,
+        indexCode: '000300.SH',
       }),
     ).toThrow(TimeWallViolation);
   }, 120_000);

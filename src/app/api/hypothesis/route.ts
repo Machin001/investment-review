@@ -18,6 +18,7 @@ export async function POST(req: Request) {
       expectedRangePct: [number, number] | null;
       counterView: string;
       selfReportedWrittenAt: string | null;
+      artifactDeclared?: boolean;
       authoredBy?: 'user' | 'ai_assisted' | 'ai_generated';
     };
 
@@ -40,10 +41,12 @@ export async function POST(req: Request) {
     // 锚定可信度：录入时间早于决策 + 24h 才算 contemporaneous
     const predeclared = body.selfReportedWrittenAt ? parseDateTime(body.selfReportedWrittenAt) : null;
     const createdAtMs = predeclared ?? Date.now();
+    // 事后补写时，只有用户声明「有当时留存的依据」才可能落到 evidence_backed。
+    // 这一档是自述，产品不假装能验证（见 README 已知边界）。
     const anchor: HypothesisAnchor = classifyHypothesisAnchor({
       createdAtMs,
       decisionAtMs: trade.tradedAtMs,
-      crossChecked: false,
+      crossChecked: Boolean(body.artifactDeclared),
     });
 
     const hypothesis: Hypothesis = {
@@ -56,6 +59,7 @@ export async function POST(req: Request) {
       authoredBy: body.authoredBy ?? 'user',
       createdAtMs,
       selfReportedWrittenAt: body.selfReportedWrittenAt,
+      artifactDeclared: Boolean(body.artifactDeclared),
       anchor,
       isBackfilled: anchor === 'recall_only',
     };
