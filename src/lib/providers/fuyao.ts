@@ -10,6 +10,7 @@
  */
 
 import { MissingCredentialError, ProviderError } from './types';
+import { cachedCall, cacheKey } from './kv';
 import type { DailyBar, MarketDataProvider } from './types';
 import type { Evidence } from '../types';
 import { shanghaiDate, dayCloseMs } from '../time';
@@ -30,6 +31,11 @@ function apiKey(): string {
 }
 
 async function call<T>(path: string, params: Record<string, string | number> = {}): Promise<{ data: T; requestId?: string }> {
+  // 快照模式下不会走到真实网络；live 模式下顺便记录响应，供生成快照
+  return cachedCall(cacheKey('fuyao', path, params), () => callLive<T>(path, params));
+}
+
+async function callLive<T>(path: string, params: Record<string, string | number> = {}): Promise<{ data: T; requestId?: string }> {
   const url = new URL(BASE + path);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
 

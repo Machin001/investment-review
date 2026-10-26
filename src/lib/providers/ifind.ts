@@ -15,6 +15,7 @@
 
 import { createHash } from 'node:crypto';
 import { MissingCredentialError, ProviderError } from './types';
+import { cachedCall, cacheKey } from './kv';
 import type { Evidence } from '../types';
 import { dayCloseMs } from '../time';
 
@@ -112,6 +113,10 @@ async function ensureSession(server: ServerName): Promise<void> {
 
 /** 调用一个工具，返回内层已解析的数据 */
 export async function callTool<T = unknown>(server: ServerName, tool: string, args: Record<string, unknown>): Promise<T> {
+  return cachedCall(cacheKey('ifind', `${server}.${tool}`, args), () => callToolLive<T>(server, tool, args));
+}
+
+async function callToolLive<T = unknown>(server: ServerName, tool: string, args: Record<string, unknown>): Promise<T> {
   await ensureSession(server);
   const { res, body } = await post(server, {
     jsonrpc: '2.0',
