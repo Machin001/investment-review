@@ -45,3 +45,6 @@ npm-debug.log*
 
 # 部署标记文件（本地产物，不随仓库分发）
 .wbapp_*.genie
+
+# 交付打包产物
+_delivery/
